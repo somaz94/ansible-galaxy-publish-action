@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased (2026-04-21)
+## [v1.1.0](https://github.com/somaz94/ansible-galaxy-publish-action/compare/v1.0.0...v1.1.0) (2026-04-21)
 
 ### Code Refactoring
 
