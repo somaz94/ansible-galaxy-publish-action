@@ -79,7 +79,7 @@ jobs:
           echo "[PASS] collection dry-run"
 
       - name: Download the uploaded artifact to verify upload worked
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: collection-somaz94-sample_collection-0.0.1
           path: /tmp/verify-artifact
