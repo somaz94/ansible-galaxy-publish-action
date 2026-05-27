@@ -15,7 +15,7 @@
 
 ## Key Files
 
-- `action.yml` — composite action (**8 inputs**, **3 outputs**). Branch logic lives in a single inline `shell: bash` step ("Publish to Galaxy") followed by a conditional `actions/upload-artifact@v4` step for collection dry-runs.
+- `action.yml` — composite action (**8 inputs**, **3 outputs**). Branch logic lives in a single inline `shell: bash` step ("Publish to Galaxy") followed by a conditional `actions/upload-artifact@v7` step for collection dry-runs.
 - `tests/fixtures/sample_collection/` — minimal buildable collection (`galaxy.yml` + one role). CI dry-runs the collection path against it.
 - `tests/fixtures/sample_role/` — minimal role (`meta/main.yml` + `tasks/main.yml`). CI dry-runs the role path against it.
 - `cliff.toml` — git-cliff config for release notes.
@@ -76,7 +76,7 @@ See [README.md](README.md) for the full table.
    - `ansible-galaxy collection build --force` in `working_directory`
    - Tarball path `<namespace>-<name>-<version>.tar.gz` → `artifact_path` output; `published_ref = collection/<ns>.<name>@<version>`
    - When `dry_run=false`: `ansible-galaxy collection publish <tarball> --api-key=<key>`
-   - When `dry_run=true`: post-step uploads the tarball via `actions/upload-artifact@v4` as `collection-<ns>-<name>-<version>` (retention 7 days)
+   - When `dry_run=true`: post-step uploads the tarball via `actions/upload-artifact@v7` as `collection-<ns>-<name>-<version>` (retention 7 days)
 5. **Role mode**:
    - `published_ref = role/<namespace>.<name>`; `artifact_path=""`, `collection_version=""`
    - When `dry_run=false`: `ansible-galaxy role import --api-key <key> <namespace> <name>`
