@@ -2,10 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased (2026-04-22)
+## Unreleased (2026-06-23)
+
+### Documentation
+
+- update upload-artifact reference to @v7 in CLAUDE.md ([bd18763](https://github.com/somaz94/ansible-galaxy-publish-action/commit/bd18763bc4e25a347daca2c164834913eccf4bf3))
+
+### Continuous Integration
+
+- add DCO check via shared reusable workflow ([e39cc21](https://github.com/somaz94/ansible-galaxy-publish-action/commit/e39cc21203b2f10d4a2bc41ae32dd1490fdfa09f))
+- add concurrency guards to recurring workflows ([8a2b4fd](https://github.com/somaz94/ansible-galaxy-publish-action/commit/8a2b4fdbffb8e7a75024afecdd9e1457c7e99953))
 
 ### Chores
 
+- **deps:** bump actions/checkout from 6 to 7 ([63f7616](https://github.com/somaz94/ansible-galaxy-publish-action/commit/63f76166206e0612342978c066c594cdcdf54dbc))
 - **deps:** bump actions/upload-artifact from 4 to 7 ([8517ffe](https://github.com/somaz94/ansible-galaxy-publish-action/commit/8517ffeef944e348fac34949d20911f97cda6d81))
 - **deps:** bump actions/download-artifact from 4 to 8 ([ab3d723](https://github.com/somaz94/ansible-galaxy-publish-action/commit/ab3d7239d4975d5def24c29b72254fbcb8c258d9))
 - drop unused docker dependabot ecosystem (composite action, no Dockerfile) ([4bf6ef2](https://github.com/somaz94/ansible-galaxy-publish-action/commit/4bf6ef2e478261bf5f3d04e5deedbde6de602157))
