@@ -144,7 +144,7 @@ runs:
             exit 1
           fi
 
-          # Extract version from galaxy.yml — PyYAML ships with ansible.
+          # PyYAML ships with ansible, so no extra install is needed.
           version="$(python -c 'import sys, yaml; print(yaml.safe_load(open("galaxy.yml"))["version"])')"
           if [[ -z "$version" ]]; then
             echo "::error::failed to read 'version' from galaxy.yml"
@@ -187,7 +187,6 @@ runs:
           summary "| Ref | \`${ref}\` |"
           summary "| Artifact | \`${abs_tarball}\` |"
         else
-          # role mode
           output_line "artifact_path="
           output_line "collection_version="
 
