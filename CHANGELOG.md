@@ -2,7 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased (2026-07-21)
+## [v1.2.0](https://github.com/somaz94/ansible-galaxy-publish-action/compare/v1.1.0...v1.2.0) (2026-09-22)
+
+### Bug Fixes
+
+- validate dry_run strictly and cross-check galaxy.yml against inputs ([d982f8e](https://github.com/somaz94/ansible-galaxy-publish-action/commit/d982f8e7b6728b94120f65d377bba0d740f67c3e))
+
+### Code Refactoring
+
+- trim redundant comments in action.yml ([46b820f](https://github.com/somaz94/ansible-galaxy-publish-action/commit/46b820f5e2e58479b6e0aa5853073c28e6d14fa3))
 
 ### Documentation
 
@@ -10,6 +18,8 @@ All notable changes to this project will be documented in this file.
 
 ### Continuous Integration
 
+- retry mirror pushes on transient remote failures ([780b132](https://github.com/somaz94/ansible-galaxy-publish-action/commit/780b132d702c8e644926252cc9a73bac8fb923b7))
+- drop the dead issue-close trigger from changelog generation ([bde949e](https://github.com/somaz94/ansible-galaxy-publish-action/commit/bde949edf6f387d762f3aecb128b1cb09bee5fdc))
 - remove DCO workflow ([8f2f16d](https://github.com/somaz94/ansible-galaxy-publish-action/commit/8f2f16daafc84032a03cb47c8e9c9d94acdcc3eb))
 - adopt semantic-pr, labels, lock-threads, PR size, and auto-assign reusables ([5e1bb3a](https://github.com/somaz94/ansible-galaxy-publish-action/commit/5e1bb3abd39154c6709c27cda4749236b4086d36))
 - use reusable stale-issues workflow ([0811d65](https://github.com/somaz94/ansible-galaxy-publish-action/commit/0811d65f164a4495c86bac615ef1d45768de16f5))
@@ -23,6 +33,8 @@ All notable changes to this project will be documented in this file.
 
 ### Chores
 
+- **deps:** bump somaz94/go-git-commit-action (#7) ([#7](https://github.com/somaz94/ansible-galaxy-publish-action/pull/7)) ([c84f89e](https://github.com/somaz94/ansible-galaxy-publish-action/commit/c84f89e9400e9655f2947690fb89343a3ab7a2a0))
+- **deps:** bump somaz94/go-git-commit-action (#6) ([#6](https://github.com/somaz94/ansible-galaxy-publish-action/pull/6)) ([fb9537d](https://github.com/somaz94/ansible-galaxy-publish-action/commit/fb9537dd9969899760f3200723fe994d97ad3853))
 - **deps:** bump actions/setup-python from 6 to 7 ([e444c81](https://github.com/somaz94/ansible-galaxy-publish-action/commit/e444c81afb0fa1c89dde85fadc2028ab3f19bdf9))
 - **deps:** bump actions/checkout from 6 to 7 ([63f7616](https://github.com/somaz94/ansible-galaxy-publish-action/commit/63f76166206e0612342978c066c594cdcdf54dbc))
 - **deps:** bump actions/upload-artifact from 4 to 7 ([8517ffe](https://github.com/somaz94/ansible-galaxy-publish-action/commit/8517ffeef944e348fac34949d20911f97cda6d81))
