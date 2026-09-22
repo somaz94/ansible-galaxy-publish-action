@@ -4,7 +4,7 @@ name: sample_collection
 version: 0.0.1
 readme: README.md
 authors:
-  - somaz
+  - somaz94
 description: Minimal fixture collection used by ansible-galaxy-publish-action CI (dry-run only).
 license:
   - MIT

@@ -68,11 +68,11 @@ See [README.md](README.md) for the full table.
 
 ## Internal Flow
 
-1. **Validate inputs** — `type` in {`collection`, `role`}; `namespace` + `name` non-empty; `api_key` required unless `dry_run=true`; `working_directory` exists.
+1. **Validate inputs** — `type` in {`collection`, `role`}; `namespace` + `name` non-empty; `dry_run` exactly `true` or `false` (lowercase — the upload step's `if:` compares case-insensitively, bash does not); `api_key` required unless `dry_run=true`; `working_directory` exists.
 2. **`actions/setup-python`** — installs the requested Python version.
 3. **`pip install ansible`** — optional version pin via `ansible_version`; PyYAML is pulled in transitively and is used below to read `galaxy.yml`.
 4. **Collection mode**:
-   - `python -c 'yaml.safe_load(open("galaxy.yml"))["version"]'` → `collection_version` output
+   - `yaml.safe_load` reads `namespace` / `name` / `version` from `galaxy.yml` → `collection_version` output; fails on parse error, missing `version`, or `namespace`/`name` mismatch with the inputs (build names the tarball from `galaxy.yml`, so a mismatch could pick up a stale tarball)
    - `ansible-galaxy collection build --force` in `working_directory`
    - Tarball path `<namespace>-<name>-<version>.tar.gz` → `artifact_path` output; `published_ref = collection/<ns>.<name>@<version>`
    - When `dry_run=false`: `ansible-galaxy collection publish <tarball> --api-key=<key>`
@@ -80,4 +80,4 @@ See [README.md](README.md) for the full table.
 5. **Role mode**:
    - `published_ref = role/<namespace>.<name>`; `artifact_path=""`, `collection_version=""`
    - When `dry_run=false`: `ansible-galaxy role import --api-key <key> <namespace> <name>`
-6. **Summary & outputs** — a markdown table (mode / namespace / name / version / ref / artifact) is appended to `$GITHUB_STEP_SUMMARY`; dry-run rows prefix the ref with `dry-run:`.
+6. **Summary & outputs** — a markdown table (mode / namespace / name / version / ref / artifact) is appended to `$GITHUB_STEP_SUMMARY`; the heading carries `dry-run` in dry-run mode (only the `published_ref` output gets the `dry-run:` prefix).

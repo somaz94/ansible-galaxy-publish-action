@@ -36,10 +36,12 @@ jobs:
           name: sample_collection
 
       - name: Verify outputs
+        env:
+          REF: ${{ steps.galaxy.outputs.published_ref }}
+          ART: ${{ steps.galaxy.outputs.artifact_path }}
+          VER: ${{ steps.galaxy.outputs.collection_version }}
         run: |
-          REF='${{ steps.galaxy.outputs.published_ref }}'
-          ART='${{ steps.galaxy.outputs.artifact_path }}'
-          VER='${{ steps.galaxy.outputs.collection_version }}'
+          set -euo pipefail
           echo "published_ref=${REF}"
           echo "artifact_path=${ART}"
           echo "collection_version=${VER}"
@@ -55,6 +57,10 @@ jobs:
           fi
           if [[ -z "${ART}" || ! -f "${ART}" ]]; then
             echo "::error::artifact_path not present or missing: '${ART}'"
+            exit 1
+          fi
+          if [[ "${ART}" != /* ]]; then
+            echo "::error::artifact_path must be absolute, got '${ART}'"
             exit 1
           fi
           echo "[PASS] smoke test — collection dry-run"
@@ -79,12 +85,27 @@ jobs:
           name: sample_role
 
       - name: Verify outputs
+        env:
+          REF: ${{ steps.galaxy.outputs.published_ref }}
+          ART: ${{ steps.galaxy.outputs.artifact_path }}
+          VER: ${{ steps.galaxy.outputs.collection_version }}
         run: |
-          REF='${{ steps.galaxy.outputs.published_ref }}'
+          set -euo pipefail
           echo "published_ref=${REF}"
+          echo "artifact_path=${ART}"
+          echo "collection_version=${VER}"
+
           expected='dry-run:role/somaz94.sample_role'
           if [[ "${REF}" != "${expected}" ]]; then
             echo "::error::expected published_ref='${expected}', got '${REF}'"
+            exit 1
+          fi
+          if [[ -n "${ART}" ]]; then
+            echo "::error::expected artifact_path to be empty in role mode, got '${ART}'"
+            exit 1
+          fi
+          if [[ -n "${VER}" ]]; then
+            echo "::error::expected collection_version to be empty in role mode, got '${VER}'"
             exit 1
           fi
           echo "[PASS] smoke test — role dry-run"

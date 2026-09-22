@@ -15,10 +15,10 @@ inputs:
     required: false
     default: ''
   namespace:
-    description: "Galaxy namespace (e.g., 'somaz94'). Required for both modes."
+    description: "Galaxy namespace (e.g., 'somaz94'). Required for both modes; in collection mode it must match galaxy.yml."
     required: true
   name:
-    description: "Collection or role name under 'namespace' (e.g., 'ansible_k8s_iac_tool' for a collection or 'ansible_kubectl_krew' for a role)."
+    description: "Collection or role name under 'namespace' (e.g., 'ansible_k8s_iac_tool' for a collection or 'ansible_kubectl_krew' for a role). In collection mode it must match galaxy.yml."
     required: true
   working_directory:
     description: "Directory containing galaxy.yml (collection) or meta/main.yml (role)."
@@ -33,7 +33,7 @@ inputs:
     required: false
     default: ''
   dry_run:
-    description: "When 'true', build the collection (if applicable) but skip the publish/import call. Useful for CI validation without a live API key."
+    description: "'true' or 'false' (lowercase; anything else fails validation). When 'true', build the collection (if applicable) but skip the publish/import call. Useful for CI validation without a live API key."
     required: false
     default: 'false'
 
@@ -69,6 +69,12 @@ runs:
           exit 1
         fi
 
+        # The upload step's `if:` compares case-insensitively; bash does not, so anything but exact lowercase would split the mode.
+        if [[ "$DRY_RUN" != "true" && "$DRY_RUN" != "false" ]]; then
+          echo "::error::input 'dry_run' must be 'true' or 'false' (got '$DRY_RUN')"
+          exit 1
+        fi
+
         if [[ "$DRY_RUN" != "true" && -z "${API_KEY// }" ]]; then
           echo "::error::input 'api_key' is required when dry_run is false"
           exit 1
@@ -101,9 +107,9 @@ runs:
         echo "::group::pip install ansible"
         python -m pip install --upgrade pip
         if [[ -n "$ANSIBLE_VERSION" ]]; then
-          pip install "ansible==${ANSIBLE_VERSION}"
+          python -m pip install "ansible==${ANSIBLE_VERSION}"
         else
-          pip install ansible
+          python -m pip install ansible
         fi
         ansible --version
         echo "::endgroup::"
@@ -123,13 +129,7 @@ runs:
 
         output_line() {
           if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
-            echo "$1" >>"$GITHUB_OUTPUT"
-          fi
-        }
-
-        summary() {
-          if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
-            echo "$1" >>"$GITHUB_STEP_SUMMARY"
+            printf '%s\n' "$1" >>"$GITHUB_OUTPUT"
           fi
         }
 
@@ -138,6 +138,8 @@ runs:
           mode_label="dry-run"
         fi
 
+        version=""
+        abs_tarball=""
         if [[ "$TYPE" == "collection" ]]; then
           if [[ ! -f galaxy.yml ]]; then
             echo "::error::galaxy.yml not found in working_directory"
@@ -145,13 +147,23 @@ runs:
           fi
 
           # PyYAML ships with ansible, so no extra install is needed.
-          version="$(python -c 'import sys, yaml; print(yaml.safe_load(open("galaxy.yml"))["version"])')"
+          if ! meta="$(python -c 'import pathlib, yaml; d = yaml.safe_load(pathlib.Path("galaxy.yml").read_text()) or {}; print("|".join(str(d.get(k) or "") for k in ("namespace", "name", "version")))')"; then
+            echo "::error::failed to parse galaxy.yml"
+            exit 1
+          fi
+          # '|' rather than a tab: IFS whitespace would collapse empty fields and shift the rest.
+          IFS='|' read -r galaxy_namespace galaxy_name version <<<"$meta"
           if [[ -z "$version" ]]; then
-            echo "::error::failed to read 'version' from galaxy.yml"
+            echo "::error::galaxy.yml has no 'version'"
+            exit 1
+          fi
+          # build names the tarball from galaxy.yml, so a mismatch would pick up a stale tarball named after the inputs.
+          if [[ "$galaxy_namespace" != "$NAMESPACE" || "$galaxy_name" != "$NAME" ]]; then
+            echo "::error::inputs '${NAMESPACE}.${NAME}' do not match galaxy.yml '${galaxy_namespace}.${galaxy_name}'"
             exit 1
           fi
           echo "collection_version=$version"
-          output_line "collection_version=$version"
+          output_line "collection_version=${version}"
 
           echo "::group::ansible-galaxy collection build"
           ansible-galaxy collection build --force
@@ -163,52 +175,46 @@ runs:
             exit 1
           fi
           abs_tarball="$(pwd)/$tarball"
-          output_line "artifact_path=$abs_tarball"
 
           ref="collection/${NAMESPACE}.${NAME}@${version}"
-          if [[ "$DRY_RUN" == "true" ]]; then
-            echo "::notice::dry_run=true — skipping 'ansible-galaxy collection publish'"
-            output_line "published_ref=dry-run:${ref}"
-          else
-            echo "::group::ansible-galaxy collection publish"
-            ansible-galaxy collection publish "$tarball" --api-key="$API_KEY"
-            echo "::endgroup::"
-            output_line "published_ref=${ref}"
-          fi
-
-          summary "### Ansible Galaxy Publish — ${mode_label}"
-          summary ""
-          summary "| Field | Value |"
-          summary "|-------|-------|"
-          summary "| Type | \`collection\` |"
-          summary "| Namespace | \`${NAMESPACE}\` |"
-          summary "| Name | \`${NAME}\` |"
-          summary "| Version | \`${version}\` |"
-          summary "| Ref | \`${ref}\` |"
-          summary "| Artifact | \`${abs_tarball}\` |"
+          op="collection publish"
+          publish_cmd=(ansible-galaxy collection publish "$tarball" --api-key="$API_KEY")
         else
-          output_line "artifact_path="
           output_line "collection_version="
-
           ref="role/${NAMESPACE}.${NAME}"
-          if [[ "$DRY_RUN" == "true" ]]; then
-            echo "::notice::dry_run=true — skipping 'ansible-galaxy role import'"
-            output_line "published_ref=dry-run:${ref}"
-          else
-            echo "::group::ansible-galaxy role import"
-            ansible-galaxy role import --api-key "$API_KEY" "$NAMESPACE" "$NAME"
-            echo "::endgroup::"
-            output_line "published_ref=${ref}"
-          fi
+          op="role import"
+          publish_cmd=(ansible-galaxy role import --api-key "$API_KEY" "$NAMESPACE" "$NAME")
+        fi
 
-          summary "### Ansible Galaxy Publish — ${mode_label}"
-          summary ""
-          summary "| Field | Value |"
-          summary "|-------|-------|"
-          summary "| Type | \`role\` |"
-          summary "| Namespace | \`${NAMESPACE}\` |"
-          summary "| Name | \`${NAME}\` |"
-          summary "| Ref | \`${ref}\` |"
+        output_line "artifact_path=${abs_tarball}"
+
+        if [[ "$DRY_RUN" == "true" ]]; then
+          echo "::notice::dry_run=true — skipping 'ansible-galaxy ${op}'"
+          output_line "published_ref=dry-run:${ref}"
+        else
+          echo "::group::ansible-galaxy ${op}"
+          "${publish_cmd[@]}"
+          echo "::endgroup::"
+          output_line "published_ref=${ref}"
+        fi
+
+        if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
+          {
+            echo "### Ansible Galaxy Publish — ${mode_label}"
+            echo ""
+            echo "| Field | Value |"
+            echo "|-------|-------|"
+            echo "| Type | \`${TYPE}\` |"
+            echo "| Namespace | \`${NAMESPACE}\` |"
+            echo "| Name | \`${NAME}\` |"
+            if [[ -n "$version" ]]; then
+              echo "| Version | \`${version}\` |"
+            fi
+            echo "| Ref | \`${ref}\` |"
+            if [[ -n "$abs_tarball" ]]; then
+              echo "| Artifact | \`${abs_tarball}\` |"
+            fi
+          } >>"$GITHUB_STEP_SUMMARY"
         fi
 
     - name: Upload collection tarball (dry-run artifact)

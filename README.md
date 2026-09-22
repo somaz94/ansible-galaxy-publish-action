@@ -154,12 +154,12 @@ The build step still runs (so broken `galaxy.yml` / missing files fail CI), but 
 |-------|-------------|----------|---------|
 | `type` | Publish target type: `collection` or `role`. | Yes | — |
 | `api_key` | Ansible Galaxy API key. Required unless `dry_run: true`. | Conditional | `''` |
-| `namespace` | Galaxy namespace (e.g., `somaz94`). Used for both modes. | Yes | — |
-| `name` | Collection or role name under `namespace` (e.g., `ansible_k8s_iac_tool` or `ansible_kubectl_krew`). | Yes | — |
+| `namespace` | Galaxy namespace (e.g., `somaz94`). Used for both modes; in collection mode it must match `galaxy.yml`. | Yes | — |
+| `name` | Collection or role name under `namespace` (e.g., `ansible_k8s_iac_tool` or `ansible_kubectl_krew`). In collection mode it must match `galaxy.yml`. | Yes | — |
 | `working_directory` | Directory containing `galaxy.yml` (collection) or `meta/main.yml` (role). | No | `.` |
 | `python_version` | Python version for `actions/setup-python`. | No | `3.12` |
 | `ansible_version` | pip pin for Ansible (e.g., `9.5.1`). Empty = latest. | No | `''` |
-| `dry_run` | When `true`, build the collection (if applicable), upload it as an artifact, and skip `publish`/`import`. | No | `false` |
+| `dry_run` | `true` or `false` (lowercase; any other value fails validation). When `true`, build the collection (if applicable), upload it as an artifact, and skip `publish`/`import`. | No | `false` |
 
 <br/>
 
@@ -190,17 +190,17 @@ The Galaxy API key is supplied via the `api_key` input (typically `${{ secrets.G
 
 ## How It Works
 
-1. **Validate inputs** — `type` must be `collection` or `role`; `namespace` and `name` are required; `api_key` is required unless `dry_run: true`.
+1. **Validate inputs** — `type` must be `collection` or `role`; `namespace` and `name` are required; `dry_run` must be exactly `true` or `false` (lowercase — the artifact-upload condition compares case-insensitively while bash does not, so a value like `True` would split the mode); `api_key` is required unless `dry_run: true`.
 2. **`actions/setup-python`** — installs the requested Python version.
 3. **pip install** — installs `ansible` (or `ansible==<version>` if `ansible_version` is set); PyYAML comes as a transitive dependency.
 4. **Collection mode**:
-   - Read `version` from `galaxy.yml` via `yaml.safe_load` → emit `collection_version` output
+   - Read `namespace`, `name` and `version` from `galaxy.yml` via `yaml.safe_load` → emit `collection_version` output. Fails if `galaxy.yml` cannot be parsed, has no `version`, or its `namespace`/`name` differ from the inputs (the build names the tarball from `galaxy.yml`, so a mismatch could pick up a stale tarball)
    - `ansible-galaxy collection build --force` in `working_directory`
    - Locate the tarball `<namespace>-<name>-<version>.tar.gz` → expose via `artifact_path`
    - When `dry_run` is `false`, run `ansible-galaxy collection publish <tarball> --api-key=<key>`; when `true`, skip and upload the tarball as a workflow artifact
 5. **Role mode**:
    - When `dry_run` is `false`, run `ansible-galaxy role import --api-key <key> <namespace> <name>`
-6. **Summary & outputs** — a markdown table is appended to `$GITHUB_STEP_SUMMARY` (mode, namespace, name, version, ref, artifact). Dry-run results are prefixed with `dry-run:`.
+6. **Summary & outputs** — a markdown table is appended to `$GITHUB_STEP_SUMMARY` (mode, namespace, name, version, ref, artifact). In dry-run mode the summary heading carries `dry-run`; only the `published_ref` output gets the `dry-run:` prefix.
 
 <br/>
 

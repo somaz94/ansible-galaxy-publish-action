@@ -1,6 +1,6 @@
 ---
 galaxy_info:
-  author: somaz
+  author: somaz94
   description: Minimal fixture role used by ansible-galaxy-publish-action CI (dry-run only).
   license: MIT
   min_ansible_version: "2.15"

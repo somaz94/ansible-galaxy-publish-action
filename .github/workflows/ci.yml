@@ -55,10 +55,12 @@ jobs:
           name: sample_collection
 
       - name: Verify outputs
+        env:
+          REF: ${{ steps.galaxy.outputs.published_ref }}
+          ART: ${{ steps.galaxy.outputs.artifact_path }}
+          VER: ${{ steps.galaxy.outputs.collection_version }}
         run: |
-          REF='${{ steps.galaxy.outputs.published_ref }}'
-          ART='${{ steps.galaxy.outputs.artifact_path }}'
-          VER='${{ steps.galaxy.outputs.collection_version }}'
+          set -euo pipefail
           echo "published_ref=${REF}"
           echo "artifact_path=${ART}"
           echo "collection_version=${VER}"
@@ -76,18 +78,22 @@ jobs:
             echo "::error::artifact_path '${ART}' missing or not a file"
             exit 1
           fi
+          if [[ "${ART}" != /* ]]; then
+            echo "::error::artifact_path must be absolute, got '${ART}'"
+            exit 1
+          fi
           echo "[PASS] collection dry-run"
 
       - name: Download the uploaded artifact to verify upload worked
         uses: actions/download-artifact@v8
         with:
           name: collection-somaz94-sample_collection-0.0.1
-          path: /tmp/verify-artifact
+          path: ${{ runner.temp }}/verify-artifact
 
       - name: Assert downloaded tarball matches
         run: |
-          ls -la /tmp/verify-artifact
-          test -f /tmp/verify-artifact/somaz94-sample_collection-0.0.1.tar.gz
+          ls -la "$RUNNER_TEMP/verify-artifact"
+          test -f "$RUNNER_TEMP/verify-artifact/somaz94-sample_collection-0.0.1.tar.gz"
           echo "[PASS] artifact upload/download round-trip"
 
   test-role:
@@ -108,10 +114,12 @@ jobs:
           name: sample_role
 
       - name: Verify outputs
+        env:
+          REF: ${{ steps.galaxy.outputs.published_ref }}
+          ART: ${{ steps.galaxy.outputs.artifact_path }}
+          VER: ${{ steps.galaxy.outputs.collection_version }}
         run: |
-          REF='${{ steps.galaxy.outputs.published_ref }}'
-          ART='${{ steps.galaxy.outputs.artifact_path }}'
-          VER='${{ steps.galaxy.outputs.collection_version }}'
+          set -euo pipefail
           echo "published_ref=${REF}"
           echo "artifact_path=${ART}"
           echo "collection_version=${VER}"
@@ -138,16 +146,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check results
+        env:
+          LINT: ${{ needs.lint.result }}
+          TEST_COLLECTION: ${{ needs.test-collection.result }}
+          TEST_ROLE: ${{ needs.test-role.result }}
         run: |
-          if [[ "${{ needs.lint.result }}" != "success" ]]; then
+          set -euo pipefail
+          if [[ "$LINT" != "success" ]]; then
             echo "::error::lint failed"
             exit 1
           fi
-          if [[ "${{ needs.test-collection.result }}" != "success" ]]; then
+          if [[ "$TEST_COLLECTION" != "success" ]]; then
             echo "::error::test-collection failed"
             exit 1
           fi
-          if [[ "${{ needs.test-role.result }}" != "success" ]]; then
+          if [[ "$TEST_ROLE" != "success" ]]; then
             echo "::error::test-role failed"
             exit 1
           fi
