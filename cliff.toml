@@ -1,11 +1,15 @@
+# git-cliff configuration
+# https://git-cliff.org/docs/configuration
+
 [changelog]
-header = ""
 body = """
-{% for group, commits in commits | group_by(attribute="group") %}
+{%- for group, commits in commits | group_by(attribute="group") %}
 ### {{ group | upper_first }}
-{% for commit in commits %}
-- {{ commit.message | upper_first }} ({{ commit.id | truncate(length=7, end="") }})\
-{% endfor %}
+{%- for commit in commits | unique(attribute="message") %}
+- {{ commit.message | split(pat="\n") | first | trim }}\
+  {%- if commit.remote.username %} by @{{ commit.remote.username }}{%- endif %}\
+  {%- if commit.remote.pr_number %} in #{{ commit.remote.pr_number }}{%- endif %}
+{%- endfor %}
 {% endfor %}
 """
 trim = true
@@ -13,15 +17,30 @@ trim = true
 [git]
 conventional_commits = true
 filter_unconventional = false
+split_commits = false
+protect_breaking_commits = false
+tag_pattern = "v[0-9].*"
+
 commit_parsers = [
-  { message = "^feat", group = "Features" },
-  { message = "^fix", group = "Bug Fixes" },
-  { message = "^docs", group = "Documentation" },
-  { message = "^perf", group = "Performance" },
-  { message = "^refactor", group = "Refactoring" },
-  { message = "^style", group = "Style" },
-  { message = "^test", group = "Testing" },
-  { message = "^ci", group = "CI/CD" },
-  { message = "^chore", group = "Miscellaneous" },
+    { message = "^Merge", skip = true },
+    { message = "^Update changelog", skip = true },
+    { message = "^Auto commit", skip = true },
+    { message = "^docs: update changelog", skip = true },
+    { message = "^docs: update CONTRIBUTORS", skip = true },
+    { message = "^feat", group = "Features" },
+    { message = "^fix", group = "Bug Fixes" },
+    { message = "^doc", group = "Documentation" },
+    { message = "^perf", group = "Performance" },
+    { message = "^refactor", group = "Refactoring" },
+    { message = "^style", group = "Style" },
+    { message = "^test", group = "Testing" },
+    { message = "^ci", group = "CI/CD" },
+    { message = "^build", group = "Build" },
+    { message = "^chore", group = "Chore" },
+    { message = "^revert", group = "Reverted" },
+    { message = ".*", group = "Other Changes" },
 ]
-filter_commits = false
+
+[remote.github]
+owner = "somaz94"
+repo = "ansible-galaxy-publish-action"
